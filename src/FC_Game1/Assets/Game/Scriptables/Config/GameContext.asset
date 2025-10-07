@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3db840efc15006240ab2c8d17019a2d8, type: 3}
+  m_Name: GameContext
+  m_EditorClassIdentifier: 
+  PlayerId: Player
+  PlayerStartPosition: {x: 0, y: 0, z: 0}
+  PlayerInventorySize: 10
+  PlayerMaxHealth: 10
+  PlayerStartMoney: 200
+  NpcsMaxHealth: 10
+  ItemScriptables:
+  - {fileID: 11400000, guid: 528707fe2d0974847ae69cdbd4023c12, type: 2}
+  - {fileID: 11400000, guid: fa958be4213970d468cd03afff7ecb9b, type: 2}
+  - {fileID: 11400000, guid: 75fbf11c63f0ae34981bc2193f9c0456, type: 2}
+  NpcScriptables:
+  - {fileID: 11400000, guid: 9b5e4ff00afe48c488df2b7aac7d6c8f, type: 2}
+  - {fileID: 11400000, guid: 22e2e9b868ee3d244bd349548a38874e, type: 2}
+  - {fileID: 11400000, guid: 6c694fae7171ae3468b23e2dc4720541, type: 2}
+  NpcVendorScriptables:
+  - {fileID: 11400000, guid: b05e7b875b8dba747917262f628d1040, type: 2}

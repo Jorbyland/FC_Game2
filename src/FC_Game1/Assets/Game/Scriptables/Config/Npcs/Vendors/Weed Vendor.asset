@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 600a4b3d02fb56946b49635e93e19d9f, type: 3}
+  m_Name: Weed Vendor
+  m_EditorClassIdentifier: 
+  Id: npc_vendor_weed
+  StartingStock:
+  - Item: {fileID: 11400000, guid: 75fbf11c63f0ae34981bc2193f9c0456, type: 2}
+    DefaultQuantity: 999999
+    OverridePrice: -1
+  - Item: {fileID: 11400000, guid: 528707fe2d0974847ae69cdbd4023c12, type: 2}
+    DefaultQuantity: 999999
+    OverridePrice: -1
+  - Item: {fileID: 11400000, guid: fa958be4213970d468cd03afff7ecb9b, type: 2}
+    DefaultQuantity: 999999
+    OverridePrice: -1
