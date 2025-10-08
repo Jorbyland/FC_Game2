@@ -4,46 +4,71 @@ namespace Game
 {
     public class Building : MonoBehaviour
     {
-        [SerializeField] private Transform m_exteriors;
-        [SerializeField] private Transform m_interiors;
+        [SerializeField] private Transform m_exteriorBase;
+        [SerializeField] private Transform m_exterior;
+        [SerializeField] private Transform m_interior;
+        [SerializeField] private Transform m_colliders;
 
-        private bool m_playerInside;
+        [SerializeField] private Building_TriggerComponent m_triggerComponent;
+        public Building_TriggerComponent TriggerCOmponent => m_triggerComponent;
+        private bool m_isHidden;
 
         private void Start()
         {
-            SetInterior(false);
+            SwitchToExterior();
+            m_triggerComponent.Setup(this);
+            m_triggerComponent.Init(OnDetectPlayer);
         }
 
-        private void OnTriggerEnter(Collider a_other)
+        public void Hide(bool a_hide)
         {
-            // if (!a_other.TryGetComponent<Player>(out _))
-            //     return;
-
-            if (m_playerInside) return;
-
-            m_playerInside = true;
-            SetInterior(true);
-            CameraManager.Instance.SwitchToInterior();
+            if (m_isHidden == a_hide || m_triggerComponent.PlayerIsInside) return;
+            m_isHidden = a_hide;
+            HideExterior(m_isHidden);
         }
 
-        private void OnTriggerExit(Collider a_other)
+        private void OnDetectPlayer(bool a_inside)
         {
-            // if (!a_other.TryGetComponent<Player>(out _))
-            //     return;
-
-            if (!m_playerInside) return;
-
-            m_playerInside = false;
-            SetInterior(false);
-            CameraManager.Instance.SwitchToExterior();
+            if (a_inside)
+            {
+                SwitchToInterior();
+                CameraManager.Instance.SwitchToInterior();
+            }
+            else
+            {
+                SwitchToExterior();
+                CameraManager.Instance.SwitchToExterior();
+            }
+        }
+        private void SwitchToInterior()
+        {
+            if (m_interior != null)
+                m_interior.gameObject.SetActive(true);
+            if (m_exterior != null)
+                m_exterior.gameObject.SetActive(false);
+            if (m_exteriorBase != null)
+                m_exteriorBase.gameObject.SetActive(false);
+            if (m_colliders != null)
+                m_colliders.gameObject.SetActive(false);
+        }
+        private void SwitchToExterior()
+        {
+            if (m_interior != null)
+                m_interior.gameObject.SetActive(false);
+            if (m_exterior != null)
+                m_exterior.gameObject.SetActive(!m_isHidden);
+            if (m_exteriorBase != null)
+                m_exteriorBase.gameObject.SetActive(m_isHidden);
+            if (m_colliders != null)
+                m_colliders.gameObject.SetActive(true);
         }
 
-        private void SetInterior(bool a_active)
+        private void HideExterior(bool a_value)
         {
-            if (m_exteriors != null)
-                m_exteriors.gameObject.SetActive(!a_active);
-            if (m_interiors != null)
-                m_interiors.gameObject.SetActive(a_active);
+            if (m_exterior != null)
+                m_exterior.gameObject.SetActive(!a_value);
+            if (m_exteriorBase != null)
+                m_exteriorBase.gameObject.SetActive(a_value);
         }
     }
 }
