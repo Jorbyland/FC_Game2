@@ -20,6 +20,11 @@ namespace Game
         [SerializeField] private CinemachineCamera m_exteriorCamera;
         [SerializeField] private CinemachineCamera m_interiorCamera;
 
+
+        [Header("Components")]
+        [SerializeField] private CameraObstacleDetector m_obstacleDetector;
+        public CameraObstacleDetector ObstacleDetector => m_obstacleDetector;
+
         [Header("Auto-align")]
         [SerializeField] private Transform m_player;
         [SerializeField] private float m_mouseSensitivity = 0.2f;

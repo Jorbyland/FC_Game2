@@ -50,6 +50,7 @@ namespace Game
         protected void Update()
         {
             // m_player_InputComponent.DoUpdate();
+            m_interactionComponent.DoUpdate();
             m_playerMovementComponent.DoUpdate();
         }
 

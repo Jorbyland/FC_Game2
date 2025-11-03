@@ -6,17 +6,26 @@ namespace Game
     [RequireComponent(typeof(Camera))]
     public class CameraObstacleDetector : MonoBehaviour
     {
+        [Header("Target")]
+        [SerializeField] private Transform m_target;
+
         [Header("Detection Settings")]
-        [SerializeField] private Transform m_target;                   // Joueur
-        [SerializeField] private LayerMask m_obstacleLayer;            // Layer "BuildingCollider"
-        [SerializeField] private float m_checkRadius = 0.2f;
+        [SerializeField] private LayerMask m_outdoorLayer;
+        [SerializeField] private LayerMask m_indoorLayer;
+        [SerializeField] private float m_checkRadiusOutdoor = 0.2f;
+        [SerializeField] private float m_checkRadiusIndoor = 2.5f;
         [SerializeField] private float m_maxDistance = 50f;
 
-        #region properties
+        [Header("Indoor Volume Settings")]
+        [Tooltip("Rayon de recherche autour du joueur pour masquer les murs proches en intérieur.")]
+        [SerializeField] private float m_innerDetectionRadius = 4f;
+        [SerializeField] private float m_innerVerticalTolerance = 3f;
+
         private Camera m_camera;
-        private readonly HashSet<Building> m_currentObstacles = new();
-        private readonly RaycastHit[] m_hitsBuffer = new RaycastHit[16];
-        #endregion
+        private readonly HashSet<Building> m_currentBuildings = new();
+        private readonly RaycastHit[] m_hitsBuffer = new RaycastHit[32];
+
+        private Building m_currentBuilding;
 
         private void Awake()
         {
@@ -25,11 +34,14 @@ namespace Game
 
         private void LateUpdate()
         {
-            if (m_target == null) return;
-            DetectObstacles();
+            if (m_target == null)
+                return;
+
+            if (m_currentBuilding == null)
+                DetectOutdoorObstacles();
         }
 
-        private void DetectObstacles()
+        private void DetectOutdoorObstacles()
         {
             Vector3 start = transform.position;
             Vector3 end = m_target.position;
@@ -37,8 +49,8 @@ namespace Game
             float dist = Vector3.Distance(start, end);
 
             int hitCount = Physics.SphereCastNonAlloc(
-                start, m_checkRadius, dir,
-                m_hitsBuffer, dist, m_obstacleLayer,
+                start, m_checkRadiusOutdoor, dir,
+                m_hitsBuffer, dist, m_outdoorLayer,
                 QueryTriggerInteraction.Ignore
             );
 
@@ -46,28 +58,41 @@ namespace Game
 
             for (int i = 0; i < hitCount; i++)
             {
-                Building building = m_hitsBuffer[i].collider.GetComponentInParent<Building>();
-                if (building == null) continue;
-                newHits.Add(building);
-                if (!m_currentObstacles.Contains(building))
+                var b = m_hitsBuffer[i].collider.GetComponentInParent<Building>();
+                if (b == null) continue;
+                newHits.Add(b);
+                if (!m_currentBuildings.Contains(b))
                 {
-                    building.Hide(true);
-                    m_currentObstacles.Add(building);
+                    b.Hide(true);
+                    m_currentBuildings.Add(b);
                 }
             }
 
-            // Nettoyage des obstacles non détectés
-            foreach (var b in m_currentObstacles)
-            {
+            foreach (var b in m_currentBuildings)
                 if (!newHits.Contains(b))
                     b.Hide(false);
-            }
-            m_currentObstacles.IntersectWith(newHits);
+
+            m_currentBuildings.IntersectWith(newHits);
         }
 
-        public void SetTarget(Transform target)
+        public void SetTarget(Transform target) => m_target = target;
+
+        public void SetCurrentBuilding(Building building)
         {
-            m_target = target;
+            m_currentBuilding = building;
+
+            foreach (var b in m_currentBuildings)
+                b.Hide(false);
+            m_currentBuildings.Clear();
         }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            if (m_target == null || m_currentBuilding == null) return;
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(m_target.position, m_innerDetectionRadius);
+        }
+#endif
     }
 }

@@ -9,6 +9,7 @@ namespace Game
         #region properties
         private VendorInventory m_shopInventory;
         public VendorInventory ShopInventory => m_shopInventory;
+        private Entity m_currentInteractorEntity;
         #endregion
 
         public override void Setup(GameContextScriptable a_context)
@@ -48,7 +49,27 @@ namespace Game
         }
         public override void Interact(Entity a_interactor)
         {
-            UIManager.Instance.Push<VendorWindow>("vendor_shop").OpenShop(m_shopInventory, a_interactor.GetComponent<Player>());
+            m_currentInteractorEntity = a_interactor;
+            UIManager.Instance.Push<VendorWindow>("vendor_shop").OpenShop(m_shopInventory, a_interactor.GetComponent<Player>(), () =>
+            {
+                canInteract = true;
+                a_interactor.GetComponent<Player>().Player_InteractionComponent.RefreshInteractions();
+            });
+            canInteract = false;
+        }
+
+        public override bool CanInteract(Entity interactor)
+        {
+            return canInteract;
+        }
+        public override void OnInteractionCompleted()
+        {
+            base.OnInteractionCompleted();
+            if (m_currentInteractorEntity != null)
+            {
+                m_currentInteractorEntity.GetComponent<Player>().Player_InteractionComponent.RefreshInteractions();
+                m_currentInteractorEntity = null;
+            }
         }
     }
 }

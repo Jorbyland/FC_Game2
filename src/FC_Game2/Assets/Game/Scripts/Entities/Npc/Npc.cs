@@ -5,7 +5,7 @@ namespace Game
     public class Npc : Actor, IInteractable
     {
         #region properties
-
+        protected bool canInteract = true;
         #endregion
 
         public override void Setup(GameContextScriptable a_gameContext)
@@ -21,13 +21,20 @@ namespace Game
         public virtual void Interact(Entity interactor)
         {
             Debug.Log($"Interaction of : {gameObject.name}");
+            canInteract = false;
+            OnInteractionCompleted();
         }
 
         public virtual bool CanInteract(Entity interactor)
         {
-            return true;
+            return canInteract;
         }
 
         public string GetInteractionPrompt() => "Parler";
+
+        public virtual void OnInteractionCompleted()
+        {
+            canInteract = true;
+        }
     }
 }

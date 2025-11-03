@@ -67,7 +67,7 @@ namespace Game
         {
             GUIManager.Instance.HidePrompt();
             a_target.Interact(m_player);
-            m_player.Player_InteractionComponent.ClearCurrentTarget();
+            m_player.Player_InteractionComponent.RefreshInteractions();
             // UIManager.Instance.Push<InventoryWindow>(a_target.Interact).Refresh(m_player.Inventory);
         }
         private void OnPlayerOpenMenu(string a_menuId)

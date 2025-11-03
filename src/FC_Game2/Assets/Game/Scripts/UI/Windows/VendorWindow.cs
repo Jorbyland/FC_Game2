@@ -27,9 +27,11 @@ namespace Game
         private ShoppingCart m_cart = new ShoppingCart();
         private VendorInventory m_currentInventory;
         private Player m_currentPlayer;
+        private System.Action onCloseShop;
 
-        public void OpenShop(VendorInventory a_inventory, Player a_player)
+        public void OpenShop(VendorInventory a_inventory, Player a_player, System.Action a_onCompleted)
         {
+            onCloseShop = a_onCompleted;
             m_currentInventory = a_inventory;
             m_currentPlayer = a_player;
             m_cart.Clear();
@@ -47,6 +49,12 @@ namespace Game
 
             RefreshShop(a_inventory);
             RefreshCart();
+        }
+        public override void Close()
+        {
+            base.Close();
+            onCloseShop?.Invoke();
+            onCloseShop = null;
         }
 
         private void RefreshShop(VendorInventory a_inventory)

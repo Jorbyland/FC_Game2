@@ -7,5 +7,6 @@ namespace Game
         void Interact(Entity a_interactor);
         bool CanInteract(Entity a_interactor);
         string GetInteractionPrompt();
+        void OnInteractionCompleted();
     }
 }
