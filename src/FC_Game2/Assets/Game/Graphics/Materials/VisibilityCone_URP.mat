@@ -123,11 +123,11 @@ Material:
     - _ZWriteControl: 1
     m_Colors:
     - _BaseColor: {r: 0.8679245, g: 0.8242238, b: 0.6304734, a: 1}
-    - _CameraPos: {r: 13.34, g: 29.284271, b: -41.724266, a: 0}
+    - _CameraPos: {r: 13.34, g: 28.284271, b: -41.724266, a: 0}
     - _Color: {r: 1, g: 0.84866357, b: 0.49999988, a: 1}
     - _CutoffColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _PlayerPos: {r: 13.34, g: 1, b: -13.44, a: 0}
+    - _PlayerPos: {r: 13.34, g: 0, b: -13.44, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

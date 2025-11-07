@@ -1,21 +1,22 @@
-// Assets/Shaders/EnemyComputeShader.compute
 #pragma kernel ClearCells
 #pragma kernel BuildGrid
 #pragma kernel MoveEnemies
 
-// --- Structures ---
 struct EnemyData {
     float3 position;
     float3 velocity;
     float health;
-    float padding; // aligment 16bytes
+    float padding;
+    int active;
+    int _pad1;
+    int _pad2;
+    int _pad3;
 };
 
 RWStructuredBuffer<EnemyData> enemies;
 
-// Grid
-RWStructuredBuffer<int> cellCounts;         // length = numCells
-RWStructuredBuffer<int> cellIndices;        // length = numCells * maxPerCell
+RWStructuredBuffer<int> cellCounts;
+RWStructuredBuffer<int> cellIndices;
 
 int gridOriginX;
 int gridOriginZ;
@@ -24,16 +25,13 @@ int gridHeight;
 float cellSize;
 int maxPerCell;
 
-// Player + params
 float3 playerPos;
 float deltaTime;
 float speed;
 float repulsionRadius;
 float repulsionStrength;
-float minDistanceForNormalize; // e.g. 0.001
+float minDistanceForNormalize;
 
-// --------------------
-// Kernel: clear counts
 [numthreads(256,1,1)]
 void ClearCells (uint3 id : SV_DispatchThreadID)
 {
@@ -42,8 +40,6 @@ void ClearCells (uint3 id : SV_DispatchThreadID)
     cellCounts[idx] = 0;
 }
 
-// --------------------
-// Kernel: build grid lists
 [numthreads(256,1,1)]
 void BuildGrid (uint3 id : SV_DispatchThreadID)
 {
@@ -51,29 +47,25 @@ void BuildGrid (uint3 id : SV_DispatchThreadID)
     if (i >= enemies.Length) return;
 
     EnemyData e = enemies[i];
+    if (e.health <= 0.0 || e.active == 0) return;
+
     int gx = (int)floor((e.position.x - (float)gridOriginX) / cellSize);
     int gz = (int)floor((e.position.z - (float)gridOriginZ) / cellSize);
 
-    // clamp inside grid
     gx = clamp(gx, 0, gridWidth - 1);
     gz = clamp(gz, 0, gridHeight - 1);
     int cellId = gz * gridWidth + gx;
 
     int old;
-    // InterlockedAdd increments atomically and returns old value in 'old'
     InterlockedAdd(cellCounts[cellId], 1, old);
 
-    // if there's still space, write index into cellIndices
     if (old < maxPerCell)
     {
         int baseIndex = cellId * maxPerCell;
         cellIndices[baseIndex + old] = (int)i;
     }
-    // else overflow: ignore extra neighbors in this cell (tunable)
 }
 
-// --------------------
-// Kernel: move enemies using neighbor list (repulsion from nearby enemies)
 [numthreads(256,1,1)]
 void MoveEnemies (uint3 id : SV_DispatchThreadID)
 {
@@ -81,8 +73,8 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
     if (i >= enemies.Length) return;
 
     EnemyData e = enemies[i];
+    if (e.health <= 0.0 || e.active == 0) return;
 
-    // --- move toward player (basic) ---
     float3 toPlayer = playerPos - e.position;
     float distToPlayer = length(toPlayer);
     float3 dirToPlayer = float3(0,0,0);
@@ -91,7 +83,6 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
 
     float3 desiredVel = dirToPlayer * speed;
 
-    // --- neighbor search via grid (3x3 cells) ---
     int gx = (int)floor((e.position.x - (float)gridOriginX) / cellSize);
     int gz = (int)floor((e.position.z - (float)gridOriginZ) / cellSize);
     gx = clamp(gx, 0, gridWidth - 1);
@@ -101,7 +92,6 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
     int neighborCount = 0;
     float rr2 = repulsionRadius * repulsionRadius;
 
-    // iterate neighbor cells -1..1 in x and z
     for (int dz = -1; dz <= 1; dz++)
     {
         int nz = gz + dz;
@@ -116,21 +106,20 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
             if (count <= 0) continue;
 
             int baseIndex = nCellId * maxPerCell;
-            // iterate indices up to min(count, maxPerCell)
             int limit = (count < maxPerCell) ? count : maxPerCell;
             for (int k = 0; k < limit; k++)
             {
                 int idx = cellIndices[baseIndex + k];
-                if (idx == i) continue; // skip self
+                if (idx == i) continue;
                 EnemyData other = enemies[idx];
+                if (other.active == 0) continue;
                 float3 diff = e.position - other.position;
                 float d2 = dot(diff, diff);
                 if (d2 < rr2 && d2 > 0.000001)
                 {
-                    float invd = rsqrt(d2); // 1 / sqrt(d2)
-                    float3 dir = diff * invd; // normalized
-                    // stronger repulsion when closer (1/dist)
-                    avoidance += dir * (1.0 / (d2 * invd)); // ~1/dist^2 scaled
+                    float invd = rsqrt(d2);
+                    float3 dir = diff * invd;
+                    avoidance += dir * (1.0 / (d2 * invd));
                     neighborCount++;
                 }
             }
@@ -139,9 +128,7 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
 
     if (neighborCount > 0)
     {
-        // average & scale
         avoidance = avoidance / (float)neighborCount;
-        // normalize avoidance safely
         float lenA = length(avoidance);
         if (lenA > minDistanceForNormalize)
             avoidance = (avoidance / lenA) * repulsionStrength;
@@ -149,17 +136,12 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
             avoidance = avoidance * repulsionStrength;
     }
 
-    // --- final velocity & position ---
     float3 finalVel = desiredVel + avoidance;
 
-    // small safeguard: if finalVel contains NaN due to mistakes, fallback
-    // (HLSL doesn't have isfinite, so we guard earlier to avoid divisions by zero)
     e.velocity = finalVel;
     e.position += e.velocity * deltaTime;
 
-    // clamp to ground plane (no falling through)
     if (e.position.y < 0.0) e.position.y = 0.0;
 
-    // store back
     enemies[i] = e;
 }
