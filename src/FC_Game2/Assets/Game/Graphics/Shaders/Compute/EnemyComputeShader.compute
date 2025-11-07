@@ -8,7 +8,7 @@ struct EnemyData {
     float health;
     float padding;
     int active;
-    int _pad1;
+    float speedFactor;
     int _pad2;
     int _pad3;
 };
@@ -31,6 +31,7 @@ float speed;
 float repulsionRadius;
 float repulsionStrength;
 float minDistanceForNormalize;
+float speedFactor;
 
 [numthreads(256,1,1)]
 void ClearCells (uint3 id : SV_DispatchThreadID)
@@ -139,7 +140,7 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
     float3 finalVel = desiredVel + avoidance;
 
     e.velocity = finalVel;
-    e.position += e.velocity * deltaTime;
+    e.position += e.velocity * deltaTime * speedFactor;
 
     if (e.position.y < 0.0) e.position.y = 0.0;
 

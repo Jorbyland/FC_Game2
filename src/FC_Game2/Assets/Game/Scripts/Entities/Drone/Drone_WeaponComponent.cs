@@ -13,15 +13,17 @@ namespace Game
         [SerializeField] private Transform m_playerTarget;
         [SerializeField] private LayerMask m_enemyLayerMask;
         [SerializeField] private GameObject m_shootImpactFX;
+        [SerializeField] private GameObject m_creepExplosionFX;
         #endregion
         #region properties
+        private Drone m_drone;
         private float m_fireRateTimer = 0;
         private float m_angleArroundTarget = 0;
         #endregion
 
-        public void Setup()
+        public void Setup(Drone a_drone)
         {
-
+            m_drone = a_drone;
         }
         public void Init()
         {
@@ -33,7 +35,8 @@ namespace Game
         {
             if (m_fireRateTimer <= 0)
             {
-                Fire();
+                // Fire();
+                FireAutoTargeting();
                 m_fireRateTimer = m_fireRate;
             }
             else
@@ -45,24 +48,26 @@ namespace Game
         private void Fire()
         {
             Vector3 targetPos = GetPositionArroundPlayer();
-            // if (Physics.Raycast(transform.position, (targetPos - transform.position).normalized, out RaycastHit hit,
-            //              Vector3.Distance(targetPos, transform.position), m_enemyLayerMask, QueryTriggerInteraction.Ignore))
-            // {
-            //     EnemyHybridBridge enemyHybridBridge = hit.collider.gameObject.GetComponent<EnemyHybridBridge>();
-            //     enemyHybridBridge.Kill();
-            //     Destroy(enemyHybridBridge.gameObject);
-            // }
             if (Physics.SphereCast(transform.position, 0.5f, (targetPos - transform.position).normalized, out RaycastHit hit,
                          Vector3.Distance(targetPos, transform.position), m_enemyLayerMask, QueryTriggerInteraction.Ignore))
             {
                 EnemyHybridBridge enemyHybridBridge = hit.collider.gameObject.GetComponent<EnemyHybridBridge>();
                 enemyHybridBridge.Kill();
-                Destroy(enemyHybridBridge.gameObject);
+                // Destroy(enemyHybridBridge.gameObject);
             }
             else
             {
                 // TODO FX shoot at targetPos
                 Instantiate(m_shootImpactFX, targetPos, Quaternion.identity);
+            }
+        }
+        private void FireAutoTargeting()
+        {
+            Enemy enemy = m_drone.SentinelComponent.GetNearestEnemyInRange();
+            if (enemy != null)
+            {
+                Instantiate(m_creepExplosionFX, enemy.gameObject.transform.position, Quaternion.identity);
+                enemy.HealthComponent.Damage(m_fireDamage, Vector3.zero);
             }
         }
 

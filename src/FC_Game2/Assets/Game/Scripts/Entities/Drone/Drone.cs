@@ -11,6 +11,7 @@ namespace Game
         [SerializeField] private Drone_WeaponComponent m_weaponComponent;
         public Drone_SentinelComponent SentinelComponent => m_sentinelComponent;
         [SerializeField] private Drone_SentinelComponent m_sentinelComponent;
+        public Transform PlayerT => m_playerTransform;
         [SerializeField] private Transform m_playerTransform;
         #endregion
 
@@ -18,8 +19,8 @@ namespace Game
         {
             base.Setup(a_context);
             m_movementComponent.Setup();
-            m_weaponComponent.Setup();
-            m_sentinelComponent.Setup();
+            m_weaponComponent.Setup(this);
+            m_sentinelComponent.Setup(this);
         }
         public override void Init(GameState a_state)
         {
