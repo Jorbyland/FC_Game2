@@ -131,6 +131,8 @@ namespace Game
             m_computeShader.SetBuffer(m_kernelMove, "cellIndices", m_cellIndicesBuffer);
 
             m_enemyMaterial.SetBuffer("enemies", m_enemyBuffer);
+            // Activer le mode buffer pour le matériau GPU
+            m_enemyMaterial.EnableKeyword("_USEBUFFER_ON");
 
             m_computeShader.SetInt("gridOriginX", Mathf.FloorToInt(m_gridOrigin.x));
             m_computeShader.SetInt("gridOriginZ", Mathf.FloorToInt(m_gridOrigin.y));
@@ -187,8 +189,25 @@ namespace Game
         }
         void LateUpdate()
         {
-            if (m_enemyMaterial && m_player)
-                m_enemyMaterial.SetVector("_PlayerPosition", m_player.position);
+            if (m_player == null) return;
+            
+            Vector3 playerPos = m_player.position;
+            
+            // Mettre à jour le matériau GPU
+            if (m_enemyMaterial)
+                m_enemyMaterial.SetVector("_PlayerPosition", playerPos);
+            
+            // Mettre à jour les matériaux des ennemis CPU actifs
+            foreach (var kvp in m_activeEnemies)
+            {
+                if (kvp.Value == null) continue;
+                
+                MeshRenderer renderer = kvp.Value.GetComponent<MeshRenderer>();
+                if (renderer != null && renderer.material != null)
+                {
+                    renderer.material.SetVector("_PlayerPosition", playerPos);
+                }
+            }
         }
 
         void OnDestroy()

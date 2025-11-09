@@ -24,6 +24,7 @@ namespace Game
 
         public void Setup(EnemyManagerGrid a_manager, int a_id, EnemyManagerGrid.EnemyData a_data, Transform a_playerT)
         {
+            // GetComponent<Renderer>().material.DisableKeyword("_USEBUFFER_ON"); 
             m_manager = a_manager;
             m_id = a_id;
             m_data = a_data;

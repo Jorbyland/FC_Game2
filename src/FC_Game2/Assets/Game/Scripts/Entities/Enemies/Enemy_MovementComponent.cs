@@ -24,7 +24,7 @@ namespace Game
         {
             Vector3 dir = (m_playerT.position - transform.position).normalized;
             transform.Translate(dir * m_velocity.magnitude * Time.deltaTime, Space.World);
-            transform.LookAt(m_playerT);
+            // transform.LookAt(m_playerT);
         }
     }
 }
