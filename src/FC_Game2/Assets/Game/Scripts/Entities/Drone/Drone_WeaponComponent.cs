@@ -1,3 +1,4 @@
+using MoreMountains.Feedbacks;
 using UnityEngine;
 
 namespace Game
@@ -13,7 +14,8 @@ namespace Game
         [SerializeField] private Transform m_playerTarget;
         [SerializeField] private LayerMask m_enemyLayerMask;
         [SerializeField] private GameObject m_shootImpactFX;
-        [SerializeField] private GameObject m_creepExplosionFX;
+        [SerializeField] private MMF_Player m_muzzleVFX;
+        [SerializeField] private Transform m_weaponStartT;
         #endregion
         #region properties
         private Drone m_drone;
@@ -45,28 +47,16 @@ namespace Game
             }
         }
 
-        private void Fire()
-        {
-            Vector3 targetPos = GetPositionArroundPlayer();
-            if (Physics.SphereCast(transform.position, 0.5f, (targetPos - transform.position).normalized, out RaycastHit hit,
-                         Vector3.Distance(targetPos, transform.position), m_enemyLayerMask, QueryTriggerInteraction.Ignore))
-            {
-                EnemyHybridBridge enemyHybridBridge = hit.collider.gameObject.GetComponent<EnemyHybridBridge>();
-                enemyHybridBridge.Kill();
-                // Destroy(enemyHybridBridge.gameObject);
-            }
-            else
-            {
-                // TODO FX shoot at targetPos
-                Instantiate(m_shootImpactFX, targetPos, Quaternion.identity);
-            }
-        }
         private void FireAutoTargeting()
         {
             Enemy enemy = m_drone.SentinelComponent.GetNearestEnemyInRange();
             if (enemy != null)
             {
-                Instantiate(m_creepExplosionFX, enemy.gameObject.transform.position, Quaternion.identity);
+                m_muzzleVFX.PlayFeedbacks();
+                transform.LookAt(enemy.transform.position);
+                VFXManager.Instance.InstantiateBulletTrail(m_weaponStartT.position, enemy.gameObject.transform.position);
+                VFXManager.Instance.Instantiate("enemyDie", enemy.gameObject.transform.position);
+                VFXManager.Instance.Instantiate("ShootSmoke", m_weaponStartT.position, m_weaponStartT.rotation);
                 enemy.HealthComponent.Damage(m_fireDamage, Vector3.zero);
             }
         }

@@ -66,14 +66,14 @@ namespace Game
             public float health;     // 4
             public float padding;    // 4 -> 32 so far
             public int active;       // 4
-            public float _pad1;        // 4
+            public float direction;        // 4 -> -1 or 1
             public int _pad2;        // 4
             public int _pad3;        // 4 -> total 48 bytes (multiple of 16)
         }
 
         void Start()
         {
-            m_enemiesPool = new ObjectPooler(m_enemyPrefab, m_maxActiveCPUEnemies, transform, 500);
+            m_enemiesPool = new ObjectPooler(m_enemyPrefab, m_maxActiveCPUEnemies, transform, 1000);
 
             if (m_computeShader == null) { Debug.LogError("Assign computeShader"); enabled = false; return; }
             if (m_enemyMesh == null || m_enemyMaterial == null) { Debug.LogError("Assign mesh & material"); enabled = false; return; }
@@ -104,7 +104,7 @@ namespace Game
                 initial[i].health = m_enemyBaseHealth;
                 initial[i].padding = 0f;
                 initial[i].active = 1;
-                initial[i]._pad1 = 1;
+                initial[i].direction = 1;
                 initial[i]._pad2 = initial[i]._pad3 = 0;
             }
             m_enemyBuffer.SetData(initial);
@@ -226,10 +226,26 @@ namespace Game
                 if (m_enemyCache[i].active == 0) continue; // already disabled on GPU
 
                 float dist = Vector3.Distance(m_enemyCache[i].position, playerPos);
-                if (dist < m_activationRadius && m_activeEnemies.Count < m_maxActiveCPUEnemies)
+                if (m_activeEnemies.Count < m_maxActiveCPUEnemies)
                 {
-                    SpawnEnemyObject(i);
+                    if (dist < m_activationRadius)
+                    {
+                        SpawnEnemyObject(i);
+                    }
+
                 }
+                else
+                {
+                    if (dist < m_activationRadius && m_enemyCache[i].direction == 1)
+                    {
+                        ReverseDirection(i);
+                    }
+                    else if (dist > m_activationRadius && m_enemyCache[i].direction == -1)
+                    {
+
+                    }
+                }
+
             }
 
             // 2) For each active CPU enemy: update its position into the GPU buffer (so the GPU has continuity)
@@ -295,7 +311,14 @@ namespace Game
 
             m_enemyCache[id].active = 1;
             m_enemyCache[id]._pad2 = m_enemyCache[id]._pad3 = 0;
+            m_enemyCache[id].direction = 1;
             // write single entry back
+            m_enemyBuffer.SetData(m_enemyCache, id, id, 1);
+        }
+
+        void ReverseDirection(int id)
+        {
+            m_enemyCache[id].direction *= -1;
             m_enemyBuffer.SetData(m_enemyCache, id, id, 1);
         }
     }

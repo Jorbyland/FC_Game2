@@ -8,7 +8,7 @@ struct EnemyData {
     float health;
     float padding;
     int active;
-    float speedFactor;
+    float direction;
     int _pad2;
     int _pad3;
 };
@@ -140,7 +140,7 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
     float3 finalVel = desiredVel + avoidance;
 
     e.velocity = finalVel;
-    e.position += e.velocity * deltaTime * speedFactor;
+    e.position += e.velocity * deltaTime * speedFactor * e.direction; // direction to move -1 || 1
 
     if (e.position.y < 0.0) e.position.y = 0.0;
 
