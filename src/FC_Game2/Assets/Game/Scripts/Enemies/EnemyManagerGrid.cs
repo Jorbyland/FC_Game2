@@ -238,37 +238,7 @@ namespace Game
 
             Vector3 playerPos = m_player.position;
 
-            // 1) Activate CPU for entries near player
-            for (int i = 0; i < m_enemyCount; i++)
-            {
-                if (m_activeEnemies.ContainsKey(i)) continue;
-                if (m_enemyCache[i].active == 0) continue; // already disabled on GPU
-
-                float dist = Vector3.Distance(m_enemyCache[i].position, playerPos);
-                if (m_activeEnemies.Count < m_maxActiveCPUEnemies)
-                {
-                    if (dist < m_activationRadius)
-                    {
-                        SpawnEnemyObject(i);
-                    }
-
-                }
-                else
-                {
-                    if (dist < m_activationRadius && m_enemyCache[i].direction == 1)
-                    {
-                        ReverseDirection(i);
-                    }
-                    else if (dist > m_activationRadius && m_enemyCache[i].direction == -1)
-                    {
-
-                    }
-                }
-
-            }
-
-            // 2) For each active CPU enemy: update its position into the GPU buffer (so the GPU has continuity)
-            // and check if it should be returned to GPU
+            // 1) D'abord, désactiver les ennemis CPU trop éloignés
             List<int> toRemove = new List<int>();
             foreach (var kvp in m_activeEnemies)
             {
@@ -295,7 +265,65 @@ namespace Game
             foreach (var id in toRemove)
                 m_activeEnemies.Remove(id);
 
+            // 2) Activer les nouveaux ennemis CPU proches du joueur
+            // Si la limite est atteinte, remplacer les ennemis CPU les plus éloignés
+            for (int i = 0; i < m_enemyCount; i++)
+            {
+                if (m_activeEnemies.ContainsKey(i)) continue;
+                if (m_enemyCache[i].active == 0) continue; // already disabled on GPU
+
+                float dist = Vector3.Distance(m_enemyCache[i].position, playerPos);
+                if (dist < m_activationRadius)
+                {
+                    if (m_activeEnemies.Count < m_maxActiveCPUEnemies)
+                    {
+                        // On a de la place, on active directement
+                        SpawnEnemyObject(i);
+                    }
+                    else
+                    {
+                        // Limite atteinte : trouver l'ennemi CPU le plus éloigné et le remplacer
+                        int furthestEnemyId = FindFurthestCPUEnemy(playerPos);
+                        if (furthestEnemyId != -1)
+                        {
+                            float furthestDist = Vector3.Distance(m_activeEnemies[furthestEnemyId].transform.position, playerPos);
+                            
+                            // Remplacer seulement si le nouvel ennemi est plus proche que le plus éloigné
+                            if (dist < furthestDist)
+                            {
+                                // Retourner l'ennemi le plus éloigné en GPU
+                                ReturnEnemyToGPU(furthestEnemyId, m_activeEnemies[furthestEnemyId]);
+                                m_activeEnemies.Remove(furthestEnemyId);
+                                
+                                // Activer le nouvel ennemi
+                                SpawnEnemyObject(i);
+                            }
+                        }
+                    }
+                }
+            }
+
             // IMPORTANT: do NOT call enemyBuffer.SetData(enemyCache) global here — it will overwrite targeted updates.
+        }
+
+        private int FindFurthestCPUEnemy(Vector3 playerPos)
+        {
+            int furthestId = -1;
+            float furthestDist = -1f;
+
+            foreach (var kvp in m_activeEnemies)
+            {
+                if (kvp.Value == null) continue;
+
+                float dist = Vector3.Distance(kvp.Value.transform.position, playerPos);
+                if (dist > furthestDist)
+                {
+                    furthestDist = dist;
+                    furthestId = kvp.Key;
+                }
+            }
+
+            return furthestId;
         }
 
         void SpawnEnemyObject(int id)
@@ -332,12 +360,6 @@ namespace Game
             m_enemyCache[id]._pad2 = m_enemyCache[id]._pad3 = 0;
             m_enemyCache[id].direction = 1;
             // write single entry back
-            m_enemyBuffer.SetData(m_enemyCache, id, id, 1);
-        }
-
-        void ReverseDirection(int id)
-        {
-            m_enemyCache[id].direction *= -1;
             m_enemyBuffer.SetData(m_enemyCache, id, id, 1);
         }
     }

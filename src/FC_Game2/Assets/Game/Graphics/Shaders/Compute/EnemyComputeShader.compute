@@ -90,8 +90,13 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
     gz = clamp(gz, 0, gridHeight - 1);
 
     float3 avoidance = float3(0,0,0);
+    float3 verticalAvoidance = float3(0,0,0);
     int neighborCount = 0;
+    int verticalNeighborCount = 0;
     float rr2 = repulsionRadius * repulsionRadius;
+    float verticalRepulsionRadius = repulsionRadius * 0.8; // Rayon plus petit pour la répulsion verticale
+    float vr2 = verticalRepulsionRadius * verticalRepulsionRadius;
+    float maxHeightDifference = 0.5; // Hauteur maximale de différence avant répulsion verticale
 
     for (int dz = -1; dz <= 1; dz++)
     {
@@ -114,14 +119,42 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
                 if (idx == i) continue;
                 EnemyData other = enemies[idx];
                 if (other.active == 0) continue;
+                
                 float3 diff = e.position - other.position;
                 float d2 = dot(diff, diff);
+                
+                // Répulsion horizontale (XZ)
                 if (d2 < rr2 && d2 > 0.000001)
                 {
                     float invd = rsqrt(d2);
                     float3 dir = diff * invd;
-                    avoidance += dir * (1.0 / (d2 * invd));
-                    neighborCount++;
+                    // Forcer la direction horizontale (Y = 0)
+                    dir.y = 0.0;
+                    float horizontalDist = length(dir);
+                    if (horizontalDist > minDistanceForNormalize)
+                    {
+                        dir = dir / horizontalDist;
+                        avoidance += dir * (1.0 / (d2 * invd));
+                        neighborCount++;
+                    }
+                }
+                
+                // Répulsion verticale pour éviter les empilements
+                float horizontalDist2 = (e.position.x - other.position.x) * (e.position.x - other.position.x) + 
+                                       (e.position.z - other.position.z) * (e.position.z - other.position.z);
+                float heightDiff = e.position.y - other.position.y;
+                
+                // Si l'ennemi est au-dessus et proche horizontalement, le pousser vers le bas
+                if (horizontalDist2 < vr2 && heightDiff > 0.0 && heightDiff < maxHeightDifference)
+                {
+                    verticalAvoidance.y -= repulsionStrength * (heightDiff / maxHeightDifference);
+                    verticalNeighborCount++;
+                }
+                // Si l'ennemi est en-dessous et proche horizontalement, se pousser vers le haut
+                else if (horizontalDist2 < vr2 && heightDiff < 0.0 && abs(heightDiff) < maxHeightDifference)
+                {
+                    verticalAvoidance.y += repulsionStrength * (abs(heightDiff) / maxHeightDifference) * 0.5;
+                    verticalNeighborCount++;
                 }
             }
         }
@@ -136,13 +169,24 @@ void MoveEnemies (uint3 id : SV_DispatchThreadID)
         else
             avoidance = avoidance * repulsionStrength;
     }
+    
+    // Appliquer la répulsion verticale
+    if (verticalNeighborCount > 0)
+    {
+        verticalAvoidance = verticalAvoidance / (float)verticalNeighborCount;
+    }
 
     float3 finalVel = desiredVel + avoidance;
+    finalVel.y = verticalAvoidance.y; // Appliquer la répulsion verticale séparément
 
     e.velocity = finalVel;
     e.position += e.velocity * deltaTime * speedFactor * e.direction; // direction to move -1 || 1
 
-    if (e.position.y < 0.0) e.position.y = 0.0;
+    // Maintenir les ennemis au sol et éviter les empilements
+    if (e.position.y < 0.0) 
+        e.position.y = 0.0;
+    else if (e.position.y > 0.1) // Si un ennemi est trop haut, le ramener au sol progressivement
+        e.position.y = lerp(e.position.y, 0.0, deltaTime * 5.0);
 
     enemies[i] = e;
 }

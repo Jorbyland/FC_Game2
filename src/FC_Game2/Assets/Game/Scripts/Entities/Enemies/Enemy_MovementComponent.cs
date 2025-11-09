@@ -23,7 +23,8 @@ namespace Game
         public void DoUpdate()
         {
             Vector3 dir = (m_playerT.position - transform.position).normalized;
-            transform.Translate(dir * m_velocity.magnitude * Time.deltaTime, Space.World);
+            m_enemy.Rigidbody.linearVelocity = dir * m_velocity.magnitude;
+            // transform.Translate(dir * m_velocity.magnitude * Time.deltaTime, Space.World);
             // transform.LookAt(m_playerT);
         }
     }

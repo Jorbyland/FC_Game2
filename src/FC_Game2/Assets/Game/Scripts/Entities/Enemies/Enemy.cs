@@ -11,6 +11,8 @@ namespace Game
         [SerializeField] private Enemy_HealthComponent m_healthComponent;
         public Enemy_Controller Controller => m_controller;
         [SerializeField] private Enemy_Controller m_controller;
+        public Rigidbody Rigidbody => m_rigidbody;
+        [SerializeField] private Rigidbody m_rigidbody;
 
         public EnemyManagerGrid Manager => m_manager;
         private EnemyManagerGrid m_manager;
